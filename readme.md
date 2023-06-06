@@ -1,6 +1,4 @@
-# Vite Three Starter Kit
-
-use branch feature/vite-three-experience for bigger projects
+# AR-Playground
 
 ## Setup
 
