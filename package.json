@@ -1,0 +1,20 @@
+{
+  "name": "vite-three-starter-kit",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "start": "vite",
+    "build": "vite build"
+  },
+  "devDependencies": {
+    "vite": "^4.0.4"
+  },
+  "dependencies": {
+    "aframe": "^1.4.2",
+    "lil-gui": "^0.17.0",
+    "three": "^0.148.0",
+    "vite-plugin-mkcert": "^1.15.0"
+  }
+}
