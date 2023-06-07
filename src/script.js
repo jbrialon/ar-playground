@@ -1,77 +1,81 @@
+import { MindARThree } from "mind-ar/dist/mindar-image-three.prod.js";
 import * as THREE from "three";
-import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader.js";
 import * as dat from "lil-gui";
 
 /**
  * Base
  */
 // Debug
-const gui = new dat.GUI();
+// const gui = new dat.GUI();
 
-// Canvas
-const canvas = document.querySelector("canvas.webgl");
+// Draco loader
+const dracoLoader = new DRACOLoader();
+dracoLoader.setDecoderPath("draco/");
 
-// Scene
-const scene = new THREE.Scene();
+// GLTF loader
+const gltfLoader = new GLTFLoader();
+gltfLoader.setDRACOLoader(dracoLoader);
+
+const mindarThree = new MindARThree({
+  container: document.querySelector("#container"),
+  imageTargetSrc: "/targets/targets2.mind",
+  // imageTargetSrc:
+  //   "https://cdn.jsdelivr.net/gh/hiukim/mind-ar-js@1.2.2/examples/image-tracking/assets/card-example/card.mind",
+});
+
+const { renderer, scene, camera } = mindarThree;
+
+const anchor = mindarThree.addAnchor(0);
 
 /**
- * Test cube
+ * Model
  */
-const cube = new THREE.Mesh(
-  new THREE.BoxGeometry(1, 1, 1),
-  new THREE.MeshBasicMaterial()
-);
-scene.add(cube);
+let mixer, planeAction, propellerAction;
+gltfLoader.load("models/airplane/airplane-2.glb", (gltf) => {
+  const airplane = gltf.scene;
+
+  mixer = new THREE.AnimationMixer(airplane);
+  const animations = gltf.animations;
+
+  planeAction = mixer.clipAction(animations[0]);
+  propellerAction = mixer.clipAction(animations[1]);
+
+  // planeAction.play();
+  propellerAction.play();
+  airplane.position.y = -2;
+  airplane.scale.x = 0.3;
+  airplane.scale.y = 0.3;
+  airplane.scale.z = 0.3;
+
+  anchor.group.add(airplane);
+});
 
 /**
- * Sizes
+ * Lights
  */
-const sizes = {
-  width: window.innerWidth,
-  height: window.innerHeight,
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+scene.add(ambientLight);
+
+const directionalLight = new THREE.DirectionalLight(0x00fffc, 0.5);
+directionalLight.position.set(1, 0.25, 0);
+scene.add(directionalLight);
+
+const hemisphereLight = new THREE.HemisphereLight(0xff0000, 0x0000ff, 0.3);
+scene.add(hemisphereLight);
+
+const pointLight = new THREE.PointLight(0xff9000, 0.5, 10, 2);
+pointLight.position.set(1, -0.5, 1);
+pointLight.position.x = 2;
+pointLight.position.y = 3;
+pointLight.position.z = 4;
+scene.add(pointLight);
+
+const start = async () => {
+  await mindarThree.start();
+  tick();
 };
-
-window.addEventListener("resize", () => {
-  // Update sizes
-  sizes.width = window.innerWidth;
-  sizes.height = window.innerHeight;
-
-  // Update camera
-  camera.aspect = sizes.width / sizes.height;
-  camera.updateProjectionMatrix();
-
-  // Update renderer
-  renderer.setSize(sizes.width, sizes.height);
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-});
-
-/**
- * Camera
- */
-// Base camera
-const camera = new THREE.PerspectiveCamera(
-  75,
-  sizes.width / sizes.height,
-  0.1,
-  100
-);
-camera.position.x = 3;
-camera.position.y = 3;
-camera.position.z = 3;
-scene.add(camera);
-
-// Controls
-const controls = new OrbitControls(camera, canvas);
-controls.enableDamping = true;
-
-/**
- * Renderer
- */
-const renderer = new THREE.WebGLRenderer({
-  canvas: canvas,
-});
-renderer.setSize(sizes.width, sizes.height);
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
 /**
  * Animate
@@ -81,9 +85,8 @@ const clock = new THREE.Clock();
 const tick = () => {
   const elapsedTime = clock.getElapsedTime();
 
-  // Update controls
-  controls.update();
-
+  // Animation
+  mixer.update(elapsedTime);
   // Render
   renderer.render(scene, camera);
 
@@ -91,4 +94,13 @@ const tick = () => {
   window.requestAnimationFrame(tick);
 };
 
-tick();
+const startButton = document.querySelector("#startButton");
+startButton.addEventListener("click", () => {
+  console.log("start");
+  start();
+});
+
+stopButton.addEventListener("click", () => {
+  mindarThree.stop();
+  mindarThree.renderer.setAnimationLoop(null);
+});
